@@ -7,9 +7,13 @@ const AMX: u64 = 1048576; // Argument maximum
 const PMAX: u64 = 32749; // Maximum prime < 2^15
 
 #[derive(PartialEq, Debug)]
+/// Rational number struct with numerator, denominator and sign.
 pub struct Ratio {
+    /// Numerator
     num: u64,
+    /// Denominator
     denom: u64,
+    /// Sign
     sign: bool,
 }
 
@@ -19,10 +23,14 @@ pub struct Padic {
     d: Vec<i64>,
 }
 
-// RATIO IMPLEMENTATION
 #[allow(dead_code)]
 impl Ratio {
-    // Constructors
+    /// Returns a ratio with numerator and denominator reduced to lowest terms.
+    ///
+    /// # Arguments
+    ///
+    /// * `num` - A signed integer numerator.
+    /// * `denom` - A signed integer denominator.
     pub fn new(n: i64, d: i64) -> Ratio {
         if d == 0 {
             panic!("Division by zero");
@@ -36,7 +44,14 @@ impl Ratio {
         }
     }
 
-    // Prime factorization with multiplicity
+    /// Returns the prime factors with multiplicity of the ratio.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let r = Ratio::new(2, 15);
+    /// assert_eq!(r.prime_factors, vec![(2, 1), (3, -1), (5, -1)]);
+    /// ```
     pub fn prime_factors(&self) -> Vec<(u64, i64)> {
         let fact_n = prime_factors(self.num);
         let fact_d = prime_factors(self.denom);
@@ -70,7 +85,13 @@ impl Ratio {
         return result;
     }
 
-    // Overloaded operators
+    /// Returns the float representation of the ratio.
+    pub fn to_float(&self) -> f64 {
+        let sign = if self.sign { 1.0 } else { -1.0 };
+        sign * (self.num as f64 / self.denom as f64)
+    }
+
+    /// Returns the string representation of the ratio.
     pub fn to_string(&self) -> String {
         let mut s = String::new();
         if !&self.sign {
@@ -82,8 +103,12 @@ impl Ratio {
         s
     }
 
-    // Convert ratio to p-adic number
-    pub fn into_padic(&self, prime: u64, precision: u64, debug: bool) -> Padic {
+    /// Convert the ratio into a p-adic number.
+    /// # Arguments
+    ///
+    /// * `prime` - An prime number.
+    /// * `precision` - A positive integer.
+    pub fn to_padic(&self, prime: u64, precision: u64, debug: bool) -> Padic {
         let num = self.num;
         let denom = self.denom;
 
@@ -122,8 +147,8 @@ impl fmt::Display for Ratio {
 
 // HELPER FUNCTIONS
 
-// Greatest common denominator - Stein's algorithm
-// https://rosettacode.org/wiki/Greatest_common_divisor#Rust
+/// Greatest common denominator - Stein's algorithm
+/// https://rosettacode.org/wiki/Greatest_common_divisor#Rust
 pub fn gcd(a: u64, b: u64) -> u64 {
     match ((a, b), (a & 1, b & 1)) {
         ((x, y), _) if x == y => y,
@@ -138,7 +163,7 @@ pub fn gcd(a: u64, b: u64) -> u64 {
     }
 }
 
-// Generate tuples of (prime, exponent) for a given number
+/// Returns a vector of (prime, exponent) tuples for a given number prime factorization.
 pub fn prime_factors(num: u64) -> Vec<(u64, i64)> {
     let mut factors = vec![];
     let mut n = num;
@@ -199,5 +224,17 @@ mod tests {
             sign: true,
         };
         assert_eq!(ratio2, test_ratio);
+    }
+
+    #[test]
+    fn ratio_float_test() {
+        let ratio1 = Ratio::new(-9, 2);
+        assert_eq!(ratio1.to_float(), -4.5);
+    }
+
+    #[test]
+    fn ratio_string_test() {
+        let ratio1 = Ratio::new(-9, 2);
+        assert_eq!(ratio1.to_string(), "-9/2");
     }
 }

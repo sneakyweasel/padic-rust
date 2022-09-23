@@ -2,13 +2,13 @@
 [package]
 name = "padic"
 version = "0.1.0"
-authors = ["Philippe Cochin <philippe@cochin.fr>"]
 edition = "2021"
-
-description = "P-adic numbers in pure Rust"
-repository = "https://github.com/dumindu/test_crate_hello_world"
-keywords = ["padic", "ratio", "math", "number"]
+description = "P-adic numbers in Rust"
 license = "MIT"
+authors = ["Philippe Cochin <philippe@cochin.fr>"]
+
+repository = "https://github.com/sneakyweasel/rust-padic"
+keywords = ["padic", "ratio", "math", "number"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]

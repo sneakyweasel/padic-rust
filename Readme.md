@@ -1,3 +1,7 @@
 # P-adic numbers
 
-This is a library for working with p-adic numbers in Rust.
+Library for working with p-adic numbers in Rust.
+
+## Status
+
+This library is currently in development. It is not yet ready for use.
