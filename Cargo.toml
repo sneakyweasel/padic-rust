@@ -1,0 +1,14 @@
+# Manifest infos: https://doc.rust-lang.org/cargo/reference/manifest.html
+[package]
+name = "padic"
+version = "0.1.0"
+authors = ["Philippe Cochin <philippe@cochin.fr>"]
+edition = "2021"
+
+description = "P-adic numbers in pure Rust"
+repository = "https://github.com/dumindu/test_crate_hello_world"
+keywords = ["padic", "ratio", "math", "number"]
+license = "MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
