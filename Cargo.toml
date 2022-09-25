@@ -7,8 +7,10 @@ description = "P-adic numbers in Rust"
 license = "MIT"
 authors = ["Philippe Cochin <philippe@cochin.fr>"]
 
+readme = "README.md"
+homepage = "https://github.com/sneakyweasel/rust-padic"
 repository = "https://github.com/sneakyweasel/rust-padic"
-keywords = ["padic", "ratio", "math", "number"]
+keywords = ["padic", "math", "ratio", "number"]
+categories = ["mathematics", "algorithms", "science"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]

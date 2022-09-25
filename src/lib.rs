@@ -1,3 +1,347 @@
+#![forbid(unsafe_code)]
+
 //! # P-adic numbers
 //!
 //! `padic` is a collection of utilities to convert and manipulate p-adic numbers.
+
+use std::cmp::{max, min};
+use std::fmt;
+
+// CONSTANTS
+const MAX_EXP: u64 = 64; // Maximum exponent
+const MAX_ARG: u64 = 1048576; // Argument maximum
+const MAX_P: u64 = 32749; // Maximum prime < 2^15
+
+#[derive(PartialEq, Debug)]
+/// Rational number struct with numerator, denominator and sign.
+pub struct Ratio {
+    /// Numerator
+    num: u64,
+    /// Denominator
+    denom: u64,
+    /// Sign
+    sign: bool,
+}
+
+#[derive(PartialEq, Debug)]
+/// p-adic number struct with valuation, decimal expansion and prime.
+pub struct Padic {
+    valuation: i64,
+    expansion: Vec<u64>,
+    prime: u64,
+}
+
+#[allow(dead_code)]
+impl Ratio {
+    /// Returns a ratio with numerator and denominator reduced to lowest terms.
+    ///
+    /// # Arguments
+    ///
+    /// * `num` - A signed integer numerator.
+    /// * `denom` - A signed integer denominator.
+    pub fn new(n: i64, d: i64) -> Ratio {
+        if d == 0 {
+            panic!("Division by zero");
+        }
+        let sign = n * d >= 0;
+        let gcd = gcd(n as u64, d as u64);
+        Ratio {
+            num: (n.abs() as u64 / gcd) as u64,
+            denom: (d.abs() as u64 / gcd) as u64,
+            sign: sign,
+        }
+    }
+
+    /// Returns the prime factors with multiplicity of the ratio.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let r = Ratio::new(2, 15);
+    /// assert_eq!(r.prime_factors, vec![(2, 1), (3, -1), (5, -1)]);
+    /// ```
+    pub fn prime_factors(&self) -> Vec<(u64, i64)> {
+        let fact_n = prime_factors(self.num);
+        let fact_d = prime_factors(self.denom);
+        // Get the union of the two sets of prime factors
+        let primes = fact_n
+            .iter()
+            .map(|&(p, _)| p)
+            .chain(fact_d.iter().map(|&(p, _)| p))
+            .collect::<Vec<u64>>();
+        let mut result: Vec<(u64, i64)> = Vec::new();
+        // Loop over the union of the two sets of prime factors and subtract their exponents
+        for prime in &primes {
+            let mut pow_n = 0;
+            let mut pow_d = 0;
+            for &(p, pow) in fact_n.iter() {
+                if p == *prime {
+                    pow_n = pow;
+                }
+            }
+            for &(p, pow) in fact_d.iter() {
+                if p == *prime {
+                    pow_d = pow;
+                }
+            }
+            let diff = pow_n - pow_d;
+            // Discard prime factors with exponent 0
+            if diff != 0 {
+                result.push((*prime, diff));
+            }
+        }
+        return result;
+    }
+
+    /// Returns the float representation of the ratio.
+    pub fn to_float(&self) -> f64 {
+        let sign = if self.sign { 1.0 } else { -1.0 };
+        sign * (self.num as f64 / self.denom as f64)
+    }
+
+    /// Returns the string representation of the ratio.
+    pub fn to_string(&self) -> String {
+        let mut s = String::new();
+        if !&self.sign {
+            s.push('-');
+        }
+        s.push_str(&self.num.to_string());
+        s.push('/');
+        s.push_str(&self.denom.to_string());
+        s
+    }
+
+    /// Returns the p-adic valuation of the ratio.
+    fn padic_valuation(&self, prime: u64) -> i64 {
+        for &(p, pow) in &self.prime_factors() {
+            if p == prime {
+                return -pow;
+            }
+        }
+        return 0;
+    }
+
+    /// Returns the p-adic norm of the ratio.
+    fn padic_norm(&self, prime: u64) -> f64 {
+        let mut result = 1.;
+        for &(p, pow) in &self.prime_factors() {
+            if p == prime {
+                result *= (p as f64).powi(-pow as i32);
+            }
+        }
+        result
+    }
+
+    /// Convert the ratio into a p-adic number.
+    /// Method: <https://math.stackexchange.com/a/1187037>
+    /// # Arguments
+    ///
+    /// * `prime` - An prime number.
+    /// * `precision` - A positive integer.
+    ///    * Example:
+    /// // 3-adic expansion of 2/5 -> 1,1,2,1,0
+    /// * +2/5 = 1 - 3 * 1/5
+    /// * -1/5 = 1 - 3 * 2/5
+    /// * -2/5 = 2 - 3 * 4/5
+    /// * -4/5 = 1 - 3 * 3/5
+    /// * -3/5 = 0 - 3 * 1/5
+    pub fn to_padic(&self, prime: u64, precision: u64, debug: bool) -> Padic {
+        let num = self.num;
+        let denom = self.denom;
+
+        // Validate input
+        if num > MAX_ARG || denom > MAX_ARG {
+            panic!("Ratio too large");
+        }
+        if prime < 2 || prime > MAX_P {
+            panic!("Prime out of range");
+        }
+        if precision < 1 {
+            panic!("Precision out of range");
+        }
+        if debug {
+            println!("Rational to p-adic conversion");
+            println!("  Ratio: {}/{}", num, denom);
+            println!("  Prime decomposition: {:?}", &self.prime_factors());
+            println!("  Prime: {}", prime);
+            println!("  Precision: {}", precision);
+        }
+
+        // Compute the p-adic expansion of the ratio
+        let expansion: Vec<u64> = vec![0; MAX_EXP as usize];
+
+        // Initialize padic number
+        return Padic {
+            valuation: self.padic_valuation(prime),
+            expansion: expansion,
+            prime: prime,
+        };
+    }
+}
+
+impl fmt::Display for Ratio {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
+}
+
+// HELPER FUNCTIONS
+
+/// Exponent of prime in number
+#[allow(dead_code)]
+fn exp_prime(n: u64, p: u64) -> i64 {
+    let mut exp = 0;
+    let mut n = n;
+    while n % p == 0 {
+        n = n / p;
+        exp += 1;
+    }
+    return exp;
+}
+
+/// Greatest common denominator - Stein's algorithm
+/// <https://rosettacode.org/wiki/Greatest_common_divisor#Rust>
+pub fn gcd(a: u64, b: u64) -> u64 {
+    match ((a, b), (a & 1, b & 1)) {
+        ((x, y), _) if x == y => y,
+        ((0, x), _) | ((x, 0), _) => x,
+        ((x, y), (0, 1)) | ((y, x), (1, 0)) => gcd(x >> 1, y),
+        ((x, y), (0, 0)) => gcd(x >> 1, y >> 1) << 1,
+        ((x, y), (1, 1)) => {
+            let (x, y) = (min(x, y), max(x, y));
+            gcd((y - x) >> 1, x)
+        }
+        _ => unreachable!(),
+    }
+}
+
+/// Returns a vector of (prime, exponent) tuples for a given number prime factorization.
+pub fn prime_factors(num: u64) -> Vec<(u64, i64)> {
+    let mut factors = vec![];
+    let mut n = num;
+    let mut d = 2;
+    while n > 1 {
+        let mut count = 0;
+        while n % d == 0 {
+            count += 1;
+            n /= d;
+        }
+        if count > 0 {
+            factors.push((d, count));
+        }
+        d += 1;
+        if d * d > n {
+            if n > 1 {
+                factors.push((n, 1));
+            }
+            break;
+        }
+    }
+    factors
+}
+
+/// Returns modular inverse of a number.
+/// <https://rosettacode.org/wiki/Modular_inverse#Rust>
+pub fn mod_inv(a: i64, module: i64) -> i64 {
+    let mut mn = (module, a);
+    let mut xy = (0, 1);
+
+    while mn.1 != 0 {
+        xy = (xy.1, xy.0 - (mn.0 / mn.1) * xy.1);
+        mn = (mn.1, mn.0 % mn.1);
+    }
+
+    while xy.0 < 0 {
+        xy.0 += module;
+    }
+    xy.0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn to_padic_test() {
+        let r = Ratio::new(2, 5);
+        let p = r.to_padic(3, 6, true);
+        assert_eq!(p.valuation, 1);
+        assert_eq!(p.expansion, vec![1, 1, 2, 1, 0, 1]);
+    }
+
+    #[test]
+    fn valuation_test() {
+        let ratio = Ratio::new(140, 297);
+        assert_eq!(ratio.padic_valuation(2), -2);
+        assert_eq!(ratio.padic_valuation(3), 3);
+        assert_eq!(ratio.padic_valuation(5), -1);
+        assert_eq!(ratio.padic_valuation(7), -1);
+        assert_eq!(ratio.padic_valuation(11), 1);
+    }
+
+    #[test]
+    fn norm_test() {
+        let ratio = Ratio::new(140, 297);
+        assert_eq!(ratio.padic_norm(2), 0.25);
+        assert_eq!(ratio.padic_norm(3), 27.0);
+        assert_eq!(ratio.padic_norm(5), 0.2);
+        assert_eq!(ratio.padic_norm(11), 11.0);
+    }
+
+    #[test]
+    fn exp_prime_test() {
+        let exp = exp_prime(5, 3);
+        assert_eq!(exp, 0);
+    }
+
+    #[test]
+    fn gcd_test() {
+        assert_eq!(gcd(6, 3), 3);
+        assert_eq!(gcd(12, 4), 4);
+    }
+
+    #[test]
+    fn mod_inv_test() {
+        assert_eq!(mod_inv(42, 2017), 1969);
+    }
+
+    #[test]
+    fn ratio_prime_decomposition_test() {
+        let ratio1 = Ratio::new(2, 15);
+        let ratio_prime_factors1 = ratio1.prime_factors();
+        assert_eq!(ratio_prime_factors1, vec![(2, 1), (3, -1), (5, -1)]);
+        let ratio2 = Ratio::new(-35, 7);
+        let ratio_prime_factors2 = ratio2.prime_factors();
+        assert_eq!(ratio_prime_factors2, vec![(5, 1)]);
+    }
+
+    #[test]
+    fn ratio_creation_test() {
+        let ratio1 = Ratio::new(21, 12);
+        let test_ratio = Ratio {
+            num: 7,
+            denom: 4,
+            sign: true,
+        };
+        assert_eq!(ratio1, test_ratio);
+        let ratio2 = Ratio::new(-21, -12);
+        let test_ratio = Ratio {
+            num: 7,
+            denom: 4,
+            sign: true,
+        };
+        assert_eq!(ratio2, test_ratio);
+    }
+
+    #[test]
+    fn ratio_float_test() {
+        let ratio1 = Ratio::new(-9, 2);
+        assert_eq!(ratio1.to_float(), -4.5);
+    }
+
+    #[test]
+    fn ratio_string_test() {
+        let ratio1 = Ratio::new(-9, 2);
+        assert_eq!(ratio1.to_string(), "-9/2");
+    }
+}
