@@ -8,8 +8,8 @@ license = "MIT"
 authors = ["Philippe Cochin <philippe@cochin.fr>"]
 
 readme = "README.md"
-homepage = "https://github.com/sneakyweasel/rust-padic"
-repository = "https://github.com/sneakyweasel/rust-padic"
+homepage = "https://github.com/sneakyweasel/padic-rust"
+repository = "https://github.com/sneakyweasel/padic-rust"
 keywords = ["padic", "math", "ratio", "number"]
 categories = ["mathematics", "algorithms", "science"]
 
