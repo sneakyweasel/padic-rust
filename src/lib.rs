@@ -152,6 +152,9 @@ impl Ratio {
     /// assert_eq!(r.padic_valuation(3), -2);
     /// ```
     pub fn padic_valuation(&self, prime: u64) -> i64 {
+        if is_prime(prime) == false {
+            panic!("{} is not a prime", prime);
+        }
         for &(p, pow) in &self.prime_factors() {
             if p == prime {
                 return pow;
@@ -170,6 +173,9 @@ impl Ratio {
     /// assert_eq!(r.padic_absolute(3), Ratio::new(9, 1));
     /// ```
     pub fn padic_absolute(&self, prime: u64) -> Ratio {
+        if is_prime(prime) == false {
+            panic!("{} is not a prime", prime);
+        }
         let valuation = self.padic_valuation(prime);
         let exp = prime.pow((valuation.abs()) as u32);
         if self.num == 0 {
@@ -216,6 +222,9 @@ impl Ratio {
         }
         if prime < 2 || prime > MAX_P {
             panic!("Prime out of range");
+        }
+        if is_prime(prime) == false {
+            panic!("{} is not a prime", prime);
         }
         if precision < 1 {
             panic!("Precision out of range");
@@ -287,8 +296,10 @@ impl fmt::Display for Ratio {
 /// let exp = exp_prime(5, 3);
 /// assert_eq!(exp, 2);
 /// ```
-#[allow(dead_code)]
 pub fn exp_prime(num: u64, prime: u64) -> i64 {
+    if is_prime(prime) == false {
+        panic!("{} is not a prime", prime);
+    }
     let mut exp = 0;
     let mut num = num;
     while num % prime != 0 {
@@ -433,7 +444,7 @@ mod tests {
     #[test]
     fn to_padic_test() {
         let r = Ratio::new(2, 5);
-        let p = r.to_padic(3, 5, true);
+        let p = r.to_padic(3, 5);
         assert_eq!(p.valuation, 1);
         assert_eq!(p.expansion, vec![1, 1, 2, 1, 0]);
     }
