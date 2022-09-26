@@ -59,7 +59,6 @@ impl Ratio {
         }
         let sign = n * d >= 0;
         let gcd = gcd(n.abs() as u64, d.abs() as u64);
-        println!("gcd: {}", gcd);
         Ratio {
             num: (n.abs() as u64 / gcd) as u64,
             denom: (d.abs() as u64 / gcd) as u64,
@@ -207,7 +206,7 @@ impl Ratio {
     /// let p = r.to_padic(3, 5, true);
     /// assert_eq!(p.expansion, vec![1, 1, 2, 1, 0]);
     /// ```
-    pub fn to_padic(&self, prime: u64, precision: u64, debug: bool) -> Padic {
+    pub fn to_padic(&self, prime: u64, precision: u64) -> Padic {
         let mut num: i64 = self.num as i64;
         let denom = self.denom;
 
@@ -221,14 +220,6 @@ impl Ratio {
         if precision < 1 {
             panic!("Precision out of range");
         }
-        if debug {
-            println!("Rational to p-adic conversion");
-            println!("  Ratio: {}/{}", num, denom);
-            println!("  Prime decomposition: {:?}", &self.prime_factors());
-            println!("  Prime: {}", prime);
-            println!("  Precision: {}", precision);
-            println!("-------------------------");
-        }
 
         // Zero-fill the padic expansion vector
         let valuation = self.padic_valuation(prime);
@@ -236,14 +227,9 @@ impl Ratio {
 
         // Find -exponent of prime in the denominator
         let exp_denom = -exp_prime(denom, prime);
-        println!(
-            "Find -exp_prime({}, {}) ->  exp_denom: {}",
-            denom, prime, exp_denom
-        );
 
         // modular inverse for small prime
         let denom1 = mod_inv((denom % prime) as i64, prime as i64);
-        println!("Denom1: {} % {} ->  denom1: {}", denom, prime, denom1);
 
         // Loop over the precision
         loop {
@@ -267,16 +253,6 @@ impl Ratio {
             num -= digit * denom as i64;
             if num == 0 {
                 break;
-            }
-
-            // debug
-            if debug {
-                println!("  exp_denom: {}", exp_denom);
-                println!("  num: {}", num);
-                println!("  denom1: {}", denom1);
-                println!("  digit: {}", digit);
-                println!("  index: {}", index);
-                println!("  expansion: {:?}", expansion);
             }
         }
 
