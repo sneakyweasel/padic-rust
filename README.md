@@ -1,10 +1,26 @@
 # P-adic numbers
 
-Library for working with p-adic numbers in Rust.
+[![crate](https://img.shields.io/crates/v/padic.svg)](https://crates.io/crates/padic)
+[![documentation](https://docs.rs/padic/badge.svg)](https://docs.rs/padic)
+[![minimum rustc 1.31](https://img.shields.io/badge/rustc-1.31+-red.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
+[![build status](https://github.com/sneakyweasel/padic/workflows/master/badge.svg)](https://github.com/sneakyweasel/padic/actions)
+
+A collection of tools for p-adic numbers in Rust.
+
+This includes a p-adic type and a rational type.
 
 ## Status
 
 This library is currently in development. It is not yet ready for use.
+
+## Usage
+
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+padic = "0.1.1"
+```
 
 ## From rational number to p-adic number
 
@@ -16,7 +32,7 @@ This library is currently in development. It is not yet ready for use.
 
 ## Helpers functions
 
-- Prime factors with multiplicity (a: i64 / b: i64) -> Vec<(prime: u64, exp: u64)> 
+- Prime factors with multiplicity (a: i64 / b: i64) -> Vec<(prime: u64, exp: u64)>
 - Greatest common divisor (Stein's algorithm)
 - Modular multiplicative inverse
 

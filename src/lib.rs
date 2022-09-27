@@ -22,7 +22,7 @@ const MAX_P: u64 = 32749; // Maximum prime < 2^15
 /// Rational number struct with numerator, denominator and sign.
 pub struct Ratio {
     /// Numerator
-    pub num: u64,
+    pub numer: u64,
     /// Denominator
     pub denom: u64,
     /// Sign
@@ -60,7 +60,7 @@ impl Ratio {
         let sign = n * d >= 0;
         let gcd = gcd(n.abs() as u64, d.abs() as u64);
         Ratio {
-            num: (n.abs() as u64 / gcd) as u64,
+            numer: (n.abs() as u64 / gcd) as u64,
             denom: (d.abs() as u64 / gcd) as u64,
             sign: sign,
         }
@@ -76,7 +76,7 @@ impl Ratio {
     /// assert_eq!(r.prime_factors(), vec![(2, 1), (3, -1), (5, -1)]);
     /// ```
     pub fn prime_factors(&self) -> Vec<(u64, i64)> {
-        let fact_n = prime_factors(self.num);
+        let fact_n = prime_factors(self.numer);
         let fact_d = prime_factors(self.denom);
         // Get the union of the two sets of prime factors
         let primes = fact_n
@@ -119,7 +119,7 @@ impl Ratio {
     /// ```
     pub fn to_float(&self) -> f64 {
         let sign = if self.sign { 1.0 } else { -1.0 };
-        sign * (self.num as f64 / self.denom as f64)
+        sign * (self.numer as f64 / self.denom as f64)
     }
 
     /// Returns the string representation of the ratio.
@@ -136,7 +136,7 @@ impl Ratio {
         if !&self.sign {
             s.push('-');
         }
-        s.push_str(&self.num.to_string());
+        s.push_str(&self.numer.to_string());
         s.push('/');
         s.push_str(&self.denom.to_string());
         s
@@ -178,7 +178,7 @@ impl Ratio {
         }
         let valuation = self.padic_valuation(prime);
         let exp = prime.pow((valuation.abs()) as u32);
-        if self.num == 0 {
+        if self.numer == 0 {
             return Ratio::new(0, 1);
         } else if valuation < 0 {
             return Ratio::new(exp as i64, 1);
@@ -213,7 +213,7 @@ impl Ratio {
     /// assert_eq!(p.expansion, vec![1, 1, 2, 1, 0]);
     /// ```
     pub fn to_padic(&self, prime: u64, precision: u64) -> Padic {
-        let mut num: i64 = self.num as i64;
+        let mut num: i64 = self.numer as i64;
         let denom = self.denom;
 
         // Validate input
@@ -488,14 +488,14 @@ mod tests {
     fn ratio_creation_test() {
         let ratio1 = Ratio::new(21, 12);
         let test_ratio = Ratio {
-            num: 7,
+            numer: 7,
             denom: 4,
             sign: true,
         };
         assert_eq!(ratio1, test_ratio);
         let ratio2 = Ratio::new(-21, -12);
         let test_ratio = Ratio {
-            num: 7,
+            numer: 7,
             denom: 4,
             sign: true,
         };
