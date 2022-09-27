@@ -3,7 +3,6 @@
 [![crate](https://img.shields.io/crates/v/padic.svg)](https://crates.io/crates/padic)
 [![documentation](https://docs.rs/padic/badge.svg)](https://docs.rs/padic)
 [![minimum rustc 1.31](https://img.shields.io/badge/rustc-1.31+-red.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
-[![build status](https://github.com/sneakyweasel/padic/workflows/master/badge.svg)](https://github.com/sneakyweasel/padic/actions)
 
 A collection of tools for p-adic numbers in Rust.
 
