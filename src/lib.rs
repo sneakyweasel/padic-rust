@@ -11,25 +11,25 @@ use std::fmt;
 //---------------------
 
 const MAX_EXP: i64 = 64; // Maximum exponent
-const MAX_ARG: i64 = 1048576; // Argument maximum
+const MAX_ARG: u64 = 1048576; // Argument maximum
 const MAX_P: u64 = 32749; // Maximum prime < 2^15
 
 //---------------------
 // STRUCTS
 //---------------------
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 /// Rational number struct with numerator, denominator and sign.
 pub struct Ratio {
     /// Numerator
     pub numer: u64,
     /// Denominator
     pub denom: u64,
-    /// Sign
-    pub sign: bool,
+    /// Sign (-1 or +1)
+    pub sign: i64,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 /// p-adic number struct with valuation, decimal expansion and prime.
 pub struct Padic {
     pub valuation: i64,
@@ -57,13 +57,57 @@ impl Ratio {
         if d == 0 {
             panic!("Division by zero");
         }
-        let sign = n * d >= 0;
+        let mut sign = 1;
+        if n * d < 0 {
+            sign = -1;
+        }
         let gcd = gcd(n.abs() as u64, d.abs() as u64);
         Ratio {
             numer: (n.abs() as u64 / gcd) as u64,
             denom: (d.abs() as u64 / gcd) as u64,
             sign: sign,
         }
+    }
+
+    /// Returns the sum of two rational numbers
+    ///
+    /// # Arguments
+    ///
+    /// * `b` - Another ratio.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use padic::Ratio;
+    /// let a = Ratio::new(-2, 5);
+    /// let b = Ratio::new(3, 5);
+    /// assert_eq!(a.add(b), Ratio::new(1, 5));
+    /// ```
+    pub fn add(&self, b: Ratio) -> Ratio {
+        let n = self.sign * self.numer as i64 * b.denom as i64
+            + b.sign * self.denom as i64 * b.numer as i64;
+        let d = self.denom as i64 * b.denom as i64;
+        Ratio::new(n, d)
+    }
+
+    /// Returns the multiplication of two rational numbers
+    ///
+    /// # Arguments
+    ///
+    /// * `b` - Another ratio.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use padic::Ratio;
+    /// let a = Ratio::new(-2, 5);
+    /// let b = Ratio::new(3, 5);
+    /// assert_eq!(a.mul(b), Ratio::new(-6, 25));
+    /// ```
+    pub fn mul(&self, b: Ratio) -> Ratio {
+        let n = self.sign * b.sign * self.numer as i64 * b.numer as i64;
+        let d = self.denom as i64 * b.denom as i64;
+        Ratio::new(n, d)
     }
 
     /// Returns the prime factors with multiplicity of the ratio.
@@ -118,8 +162,7 @@ impl Ratio {
     /// assert_eq!(r.to_float(), 0.5);
     /// ```
     pub fn to_float(&self) -> f64 {
-        let sign = if self.sign { 1.0 } else { -1.0 };
-        sign * (self.numer as f64 / self.denom as f64)
+        self.sign as f64 * (self.numer as f64 / self.denom as f64)
     }
 
     /// Returns the string representation of the ratio.
@@ -133,7 +176,7 @@ impl Ratio {
     /// ```
     pub fn to_string(&self) -> String {
         let mut s = String::new();
-        if !&self.sign {
+        if self.sign == -1 {
             s.push('-');
         }
         s.push_str(&self.numer.to_string());
@@ -193,7 +236,7 @@ impl Ratio {
     ///
     /// # Arguments
     ///
-    /// * `prime` - An prime number.
+    /// * `prime` - A prime number.
     /// * `precision` - A positive integer.
     ///
     /// # Examples
@@ -209,15 +252,12 @@ impl Ratio {
     /// ```
     /// use padic::Ratio;
     /// let r = Ratio::new(2, 5);
-    /// let p = r.to_padic(3, 5, true);
+    /// let p = r.to_padic(3, 5);
     /// assert_eq!(p.expansion, vec![1, 1, 2, 1, 0]);
     /// ```
     pub fn to_padic(&self, prime: u64, precision: u64) -> Padic {
-        let mut num: i64 = self.numer as i64;
-        let denom = self.denom;
-
         // Validate input
-        if num > MAX_ARG || denom > MAX_ARG as u64 {
+        if self.numer > MAX_ARG || self.denom > MAX_ARG as u64 {
             panic!("Ratio too large");
         }
         if prime < 2 || prime > MAX_P {
@@ -230,39 +270,15 @@ impl Ratio {
             panic!("Precision out of range");
         }
 
-        // Zero-fill the padic expansion vector
-        let valuation = self.padic_valuation(prime);
-        let mut expansion: Vec<u64> = vec![0; (MAX_EXP * 2) as usize];
+        // Get the p-adic absolute value of the ratio
+        let mut expansion = vec![0; precision as usize];
 
-        // Find -exponent of prime in the denominator
-        let exp_denom = -exp_prime(denom, prime);
-
-        // modular inverse for small prime
-        let denom1 = mod_inv((denom % prime) as i64, prime as i64);
-
-        // Loop over the precision
-        loop {
-            // find exponent of prime in the numerator
-            num = exp_prime(num as u64, prime);
-
-            // upper bound
-            if exp_denom - valuation > precision as i64 {
-                break;
-            }
-
-            // next digit
-            let mut digit = (num * denom1) % prime as i64;
-            if digit < 0 {
-                digit += prime as i64;
-            }
-            let index = (exp_denom + MAX_EXP) as usize;
-            expansion[index] = digit as u64;
-
-            // remainder - digit * denominator
-            num -= digit * denom as i64;
-            if num == 0 {
-                break;
-            }
+        let mut digit;
+        let mut ratio = self.clone();
+        for i in 0..precision as usize {
+            digit = ratio.next_digit(prime).0;
+            ratio = ratio.next_digit(prime).1;
+            expansion[i] = digit;
         }
 
         // Initialize padic number
@@ -271,6 +287,35 @@ impl Ratio {
             expansion: expansion,
             prime: prime,
         };
+    }
+
+    /// Returns the next digit of the p-adic expansion.
+    ///
+    /// # Arguments
+    ///
+    /// * `prime` - A prime number.
+    ///
+    /// ```
+    /// use padic::Ratio;
+    /// let a = Ratio::new(2, 5);
+    /// assert_eq!(a.next_digit(3), (1, Ratio::new(-1, 5)));
+    /// ```
+    pub fn next_digit(&self, prime: u64) -> (u64, Ratio) {
+        let p_ratio = Ratio::new(prime as i64, 1);
+        for digit in 0..prime {
+            let d_ratio = Ratio::new(digit as i64, 1);
+
+            for num in 1..=self.denom {
+                let num_ratio = Ratio::new(-(num as i64), self.denom as i64);
+                let result1 = p_ratio.mul(num_ratio.clone());
+                let result2 = d_ratio.add(result1.clone());
+                println!("{} = {} - {} * {}", self, digit, prime, num_ratio);
+                if result2 == *self {
+                    return (digit, num_ratio);
+                }
+            }
+        }
+        panic!("P-adic expansion next digit computation error.")
     }
 }
 
@@ -296,15 +341,15 @@ impl fmt::Display for Ratio {
 /// let exp = exp_prime(5, 3);
 /// assert_eq!(exp, 2);
 /// ```
-pub fn exp_prime(num: u64, prime: u64) -> i64 {
+pub fn exp_prime(num: i64, prime: u64) -> i64 {
     if is_prime(prime) == false {
         panic!("{} is not a prime", prime);
     }
     let mut exp = 0;
     let mut num = num;
-    while num % prime != 0 {
-        num /= prime;
+    while num % (prime as i64) != 0 {
         exp += 1;
+        num /= prime as i64;
     }
     return exp;
 }
@@ -444,9 +489,8 @@ mod tests {
     #[test]
     fn to_padic_test() {
         let r = Ratio::new(2, 5);
-        let p = r.to_padic(3, 5);
-        assert_eq!(p.valuation, 1);
-        assert_eq!(p.expansion, vec![1, 1, 2, 1, 0]);
+        let p = r.to_padic(3, 10);
+        assert_eq!(p.expansion, vec![1, 1, 2, 1, 0, 1, 2, 1, 0, 1]);
     }
 
     #[test]
@@ -490,14 +534,14 @@ mod tests {
         let test_ratio = Ratio {
             numer: 7,
             denom: 4,
-            sign: true,
+            sign: 1,
         };
         assert_eq!(ratio1, test_ratio);
         let ratio2 = Ratio::new(-21, -12);
         let test_ratio = Ratio {
             numer: 7,
             denom: 4,
-            sign: true,
+            sign: 1,
         };
         assert_eq!(ratio2, test_ratio);
     }
