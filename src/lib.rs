@@ -309,8 +309,8 @@ impl Ratio {
                 let num_ratio = Ratio::new(-(num as i64), self.denom as i64);
                 let result1 = p_ratio.mul(num_ratio.clone());
                 let result2 = d_ratio.add(result1.clone());
-                println!("{} = {} - {} * {}", self, digit, prime, num_ratio);
                 if result2 == *self {
+                    // println!("{} = {} - {} * {}", self, digit, prime, num_ratio);
                     return (digit, num_ratio);
                 }
             }
@@ -490,6 +490,7 @@ mod tests {
     fn to_padic_test() {
         let r = Ratio::new(2, 5);
         let p = r.to_padic(3, 10);
+        assert_eq!(p.valuation, 0);
         assert_eq!(p.expansion, vec![1, 1, 2, 1, 0, 1, 2, 1, 0, 1]);
     }
 
