@@ -29,8 +29,6 @@ assert_eq!(p.valuation, 0);
 assert_eq!(p.expansion, vec![1, 1, 2, 1, 0, 1, 2, 1, 0, 1]);
 ```
 
-```
-
 ## From rational number to p-adic number
 
 - Reduce ratio to lowest terms

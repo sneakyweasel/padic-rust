@@ -10,7 +10,6 @@ use std::fmt;
 // CONSTANTS
 //---------------------
 
-const MAX_EXP: i64 = 64; // Maximum exponent
 const MAX_ARG: u64 = 1048576; // Argument maximum
 const MAX_P: u64 = 32749; // Maximum prime < 2^15
 
