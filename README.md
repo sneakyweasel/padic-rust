@@ -45,12 +45,18 @@ assert_eq!(p.expansion, vec![1, 1, 2, 1, 0, 1, 2, 1, 0, 1]);
 
 ## TODOs
 
+### Ratio
+
 - [x] Extract sign information to transform ratio into a tuple of unsigned integer variables
 - [x] Reduce ratio to lowest terms using GCD (Stein's algorithm)
+- [x] Basic arithmetic operations for rational numbers
+
+### P-adic
+
 - [x] Prime decomposition returning vector of (prime, exponent) tuples.
 - [x] P-adic valuation of rational number
 - [x] P-adic norm of rational number
-- [ ] P-adic expansion of rational number
+- [x] P-adic expansion of rational number
 - [ ] Convert p-adic expansion into rational number
 - [ ] Basic operations for p-adic numbers
 

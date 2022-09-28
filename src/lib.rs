@@ -328,31 +328,6 @@ impl fmt::Display for Ratio {
 // HELPER FUNCTIONS
 //---------------------
 
-/// Exponent of prime in number
-///
-/// # Arguments
-/// * `num` - A positive integer.
-/// * `prime` - An prime number.
-///
-/// # Examples
-/// ```
-/// use padic::exp_prime;
-/// let exp = exp_prime(5, 3);
-/// assert_eq!(exp, 2);
-/// ```
-pub fn exp_prime(num: i64, prime: u64) -> i64 {
-    if is_prime(prime) == false {
-        panic!("{} is not a prime", prime);
-    }
-    let mut exp = 0;
-    let mut num = num;
-    while num % (prime as i64) != 0 {
-        exp += 1;
-        num /= prime as i64;
-    }
-    return exp;
-}
-
 /// Greatest common denominator - Stein's algorithm
 /// <https://rosettacode.org/wiki/Greatest_common_divisor#Rust>
 ///
@@ -486,7 +461,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn to_padic_test() {
+    fn ratio_to_padic_test() {
         let r = Ratio::new(2, 5);
         let p = r.to_padic(3, 10);
         assert_eq!(p.valuation, 0);
@@ -494,7 +469,7 @@ mod tests {
     }
 
     #[test]
-    fn valuation_test() {
+    fn ratio_padic_valuation_test() {
         let ratio = Ratio::new(140, 297);
         assert_eq!(ratio.padic_valuation(2), 2);
         assert_eq!(ratio.padic_valuation(3), -3);
@@ -504,7 +479,7 @@ mod tests {
     }
 
     #[test]
-    fn norm_test() {
+    fn ratio_padic_absolute_test() {
         let ratio = Ratio::new(140, 297);
         assert_eq!(ratio.padic_absolute(2), Ratio::new(1, 4));
         assert_eq!(ratio.padic_absolute(3), Ratio::new(27, 1));
@@ -513,13 +488,7 @@ mod tests {
     }
 
     #[test]
-    fn exp_prime_test() {
-        let exp = exp_prime(5, 3);
-        assert_eq!(exp, 2);
-    }
-
-    #[test]
-    fn ratio_prime_decomposition_test() {
+    fn ratio_prime_factors_test() {
         let ratio1 = Ratio::new(2, 15);
         let ratio_prime_factors1 = ratio1.prime_factors();
         assert_eq!(ratio_prime_factors1, vec![(2, 1), (3, -1), (5, -1)]);
@@ -529,31 +498,24 @@ mod tests {
     }
 
     #[test]
-    fn ratio_creation_test() {
-        let ratio1 = Ratio::new(21, 12);
+    fn ratio_new_test() {
+        let ratio1 = Ratio::new(-21, -12);
         let test_ratio = Ratio {
             numer: 7,
             denom: 4,
             sign: 1,
         };
         assert_eq!(ratio1, test_ratio);
-        let ratio2 = Ratio::new(-21, -12);
-        let test_ratio = Ratio {
-            numer: 7,
-            denom: 4,
-            sign: 1,
-        };
-        assert_eq!(ratio2, test_ratio);
     }
 
     #[test]
-    fn ratio_float_test() {
+    fn ratio_to_float_test() {
         let ratio1 = Ratio::new(-9, 2);
         assert_eq!(ratio1.to_float(), -4.5);
     }
 
     #[test]
-    fn ratio_string_test() {
+    fn ratio_to_string_test() {
         let ratio1 = Ratio::new(-9, 2);
         assert_eq!(ratio1.to_string(), "-9/2");
     }
