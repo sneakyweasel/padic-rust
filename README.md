@@ -18,7 +18,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-padic = "x.x.x"
+padic = "0.1.4"
 ```
 
 ```rust
