@@ -18,6 +18,53 @@ const MAX_P: u64 = 32749; // Maximum prime < 2^15
 //---------------------
 
 #[derive(PartialEq, Clone, Debug)]
+/// p-adic number struct with valuation, decimal expansion and prime.
+pub struct Padic {
+    pub valuation: i64,
+    pub expansion: Vec<u64>,
+    prime: u64,
+}
+
+#[allow(dead_code)]
+impl Padic {
+    /// Returns a formatted string representing the padic expansion
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use padic::Ratio;
+    /// let ratio_zero = Ratio::new(1, 3);
+    /// assert_eq!(ratio_zero.to_padic(5, 6).to_string(), "... 3 1 3 1 3 2");
+    /// let ratio_plus = Ratio::new(25, 3);
+    /// assert_eq!(ratio_plus.to_padic(5, 6).to_string(), "... 3 1 3 2 0 0");
+    /// let ratio_minus = Ratio::new(1, 75);
+    /// assert_eq!(ratio_minus.to_padic(5, 6).to_string(), "... 1 3 1 , 3 2");
+    /// ```
+    pub fn to_string(&self) -> String {
+        let mut expansion: Vec<String> = self
+            .expansion
+            .clone()
+            .iter()
+            .map(|&d| d.to_string())
+            .collect();
+
+        if self.valuation < 0 {
+            expansion.insert(-self.valuation as usize, ",".to_string());
+            expansion.pop();
+        }
+
+        if self.valuation > 0 {
+            for _i in 0..self.valuation {
+                expansion.insert(0, "0".to_string());
+                expansion.pop();
+            }
+        }
+        expansion.reverse();
+        "... ".to_string() + &expansion.join(" ").to_string().trim_end().to_string()
+    }
+}
+
+#[derive(PartialEq, Clone, Debug)]
 /// Rational number struct with numerator, denominator and sign.
 pub struct Ratio {
     /// Numerator
@@ -26,14 +73,6 @@ pub struct Ratio {
     pub denom: u64,
     /// Sign (-1 or +1)
     pub sign: i64,
-}
-
-#[derive(PartialEq, Clone, Debug)]
-/// p-adic number struct with valuation, decimal expansion and prime.
-pub struct Padic {
-    pub valuation: i64,
-    pub expansion: Vec<u64>,
-    prime: u64,
 }
 
 #[allow(dead_code)]
@@ -89,6 +128,27 @@ impl Ratio {
         Ratio::new(n, d)
     }
 
+    /// Returns the sum of two rational numbers
+    ///
+    /// # Arguments
+    ///
+    /// * `b` - Another ratio.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use padic::Ratio;
+    /// let a = Ratio::new(-2, 5);
+    /// let b = Ratio::new(3, 5);
+    /// assert_eq!(a.sub(b), Ratio::new(-1, 1));
+    /// ```
+    pub fn sub(&self, b: Ratio) -> Ratio {
+        let n = self.sign * self.numer as i64 * b.denom as i64
+            - b.sign * self.denom as i64 * b.numer as i64;
+        let d = self.denom as i64 * b.denom as i64;
+        Ratio::new(n, d)
+    }
+
     /// Returns the multiplication of two rational numbers
     ///
     /// # Arguments
@@ -106,6 +166,26 @@ impl Ratio {
     pub fn mul(&self, b: Ratio) -> Ratio {
         let n = self.sign * b.sign * self.numer as i64 * b.numer as i64;
         let d = self.denom as i64 * b.denom as i64;
+        Ratio::new(n, d)
+    }
+
+    /// Returns the multiplication of two rational numbers
+    ///
+    /// # Arguments
+    ///
+    /// * `b` - Another ratio.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use padic::Ratio;
+    /// let a = Ratio::new(-2, 5);
+    /// let b = Ratio::new(3, 5);
+    /// assert_eq!(a.div(b), Ratio::new(-2, 3));
+    /// ```
+    pub fn div(&self, b: Ratio) -> Ratio {
+        let n = self.sign * b.sign * self.numer as i64 * b.denom as i64;
+        let d = self.denom as i64 * b.numer as i64;
         Ratio::new(n, d)
     }
 
@@ -149,6 +229,30 @@ impl Ratio {
             }
         }
         return result;
+    }
+
+    /// Returns the prime factors with multiplicity of the ratio.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use padic::Ratio;
+    /// let r = Ratio::new(2, 45);
+    /// let r = Ratio::new(18, 5);
+    /// assert_eq!(r.without_prime(3), Ratio::new(2, 5));
+    /// assert_eq!(r.without_prime(3), Ratio::new(2, 5));
+    /// ```
+    pub fn without_prime(&self, prime: u64) -> Ratio {
+        let mut numer = self.numer;
+        let mut denom = self.denom;
+
+        while numer % prime == 0 {
+            numer /= prime
+        }
+        while denom % prime == 0 {
+            denom /= prime
+        }
+        Ratio::new(self.sign * numer as i64, denom as i64)
     }
 
     /// Returns the float representation of the ratio.
@@ -250,7 +354,7 @@ impl Ratio {
     ///
     /// ```
     /// use padic::Ratio;
-    /// let r = Ratio::new(2, 5);
+    /// let r = Ratio::new(2, 45);
     /// let p = r.to_padic(3, 5);
     /// assert_eq!(p.expansion, vec![1, 1, 2, 1, 0]);
     /// ```
@@ -270,19 +374,20 @@ impl Ratio {
         }
 
         // Get the p-adic absolute value of the ratio
+        let valuation = self.padic_valuation(prime);
         let mut expansion = vec![0; precision as usize];
 
         let mut digit;
-        let mut ratio = self.clone();
-        for i in 0..precision as usize {
+        let mut ratio = self.without_prime(prime);
+        for i in 0..precision {
             digit = ratio.next_digit(prime).0;
             ratio = ratio.next_digit(prime).1;
-            expansion[i] = digit;
+            expansion[i as usize] = digit;
         }
 
         // Initialize padic number
         return Padic {
-            valuation: self.padic_valuation(prime),
+            valuation: valuation,
             expansion: expansion,
             prime: prime,
         };
@@ -301,20 +406,20 @@ impl Ratio {
     /// ```
     pub fn next_digit(&self, prime: u64) -> (u64, Ratio) {
         let p_ratio = Ratio::new(prime as i64, 1);
-        for digit in 0..prime {
+        for digit in 0..=prime {
             let d_ratio = Ratio::new(digit as i64, 1);
 
             for num in 1..=self.denom {
                 let num_ratio = Ratio::new(-(num as i64), self.denom as i64);
-                let result1 = p_ratio.mul(num_ratio.clone());
-                let result2 = d_ratio.add(result1.clone());
-                if result2 == *self {
-                    // println!("{} = {} - {} * {}", self, digit, prime, num_ratio);
+
+                let result = d_ratio.add(p_ratio.mul(num_ratio.clone()));
+                if result == *self {
+                    println!("{} = {} - {} * {}", self, digit, prime, num_ratio);
                     return (digit, num_ratio);
                 }
             }
         }
-        panic!("P-adic expansion next digit computation error.")
+        panic!("Next digit computation error.")
     }
 }
 
@@ -461,12 +566,60 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ratio_to_padic_test() {
+    fn ratio_to_padic_default_test() {
         let r = Ratio::new(2, 5);
         let p = r.to_padic(3, 10);
         assert_eq!(p.valuation, 0);
         assert_eq!(p.expansion, vec![1, 1, 2, 1, 0, 1, 2, 1, 0, 1]);
     }
+
+    #[test]
+    fn ratio_to_padic_val_none_test() {
+        let r = Ratio::new(1, 3);
+        let p = r.to_padic(5, 10);
+        assert_eq!(p.valuation, 0);
+        assert_eq!(p.expansion, vec![2, 3, 1, 3, 1, 3, 1, 3, 1, 3]);
+    }
+
+    #[test]
+    fn ratio_to_padic_val_two_test() {
+        let r = Ratio::new(25, 3);
+        let p = r.to_padic(5, 10);
+        assert_eq!(p.valuation, 2);
+        assert_eq!(p.expansion, vec![2, 3, 1, 3, 1, 3, 1, 3, 1, 3]);
+    }
+
+    #[test]
+    fn ratio_to_padic_val_minus_two_test() {
+        let r = Ratio::new(1, 75);
+        let p = r.to_padic(5, 10);
+        assert_eq!(p.valuation, -2);
+        assert_eq!(p.expansion, vec![2, 3, 1, 3, 1, 3, 1, 3, 1, 3]);
+    }
+
+    //  {2, 1, 2, 4, 1, 1},
+    //  {4, 1, 2, 4, 3, 1},
+    //  {4, 1, 2, 5, 3, 1},
+    //  {4, 9, 5, 4, 8, 9},
+    //  {26, 25, 5, 4, -109, 125},
+    //  {49, 2, 7, 6, -4851, 2},
+    //  {-9, 5, 3, 8, 27, 7},
+    //  {5, 19, 2, 12, -101, 384},
+    //  /* two decadic pairs */
+    //  {2, 7, 10, 7, -1, 7},
+    //  {34, 21, 10, 9, -39034, 791},
+    //  /* familiar digits */
+    //  {11, 4, 2, 43, 679001, 207},
+    //  {-8, 9, 23, 9, 302113, 92},
+    //  {-22, 7, 3, 23, 46071, 379},
+    //  {-22, 7, 32749, 3, 46071, 379},
+    //  {35, 61, 5, 20, 9400, 109},
+    //  {-101, 109, 61, 7, 583376, 6649},
+    //  {-25, 26, 7, 13, 5571, 137},
+    //  {1, 4, 7, 11, 9263, 2837},
+    //  {122, 407, 7, 11, -517, 1477},
+    //  /* more subtle */
+    //  {5, 8, 7, 11, 353, 30809},
 
     #[test]
     fn ratio_padic_valuation_test() {

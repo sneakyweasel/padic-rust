@@ -18,30 +18,28 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-padic = "0.1.1"
+padic = "x.x.x"
 ```
 
 ```rust
 use padic::Ratio;
-let r = Ratio::new(2, 5);
-let p = r.to_padic(3, 10);
-assert_eq!(p.valuation, 0);
-assert_eq!(p.expansion, vec![1, 1, 2, 1, 0, 1, 2, 1, 0, 1]);
+let ratio = Ratio::new(1, 3);
+let padic = r.to_padic(5, 6);
+assert_eq!(padic.valuation, 0);
+assert_eq!(padic.expansion, vec![3, 1, 3, 1, 3, 2]);
+assert_eq!(padic.to_string(), "...3 1 3 1 3 2");
 ```
-
-## From rational number to p-adic number
-
-- Reduce ratio to lowest terms
-- Convert ratio into a list of tuples of prime factors and their exponents
-- Retrieve p-adic norm
-- Retrieve p-adic absolute value
-- Compute p-adic expansion
 
 ## Helpers functions
 
 - Prime factors with multiplicity (a: i64 / b: i64) -> Vec<(prime: u64, exp: u64)>
 - Greatest common divisor (Stein's algorithm)
 - Modular multiplicative inverse
+
+## Resources
+
+- <https://en.wikipedia.org/wiki/P-adic_number>
+- <https://www.cut-the-knot.org/blue/p-adicExpansion.shtml>
 
 ## TODOs
 
@@ -56,9 +54,16 @@ assert_eq!(p.expansion, vec![1, 1, 2, 1, 0, 1, 2, 1, 0, 1]);
 - [x] Prime decomposition returning vector of (prime, exponent) tuples.
 - [x] P-adic valuation of rational number
 - [x] P-adic norm of rational number
-- [x] P-adic expansion of rational number
+- [x] P-adic expansion of rational number with given precision
+- [x] P-adic string representation with given precision and given valuation
+- [ ] Cyclic detection in p-adic expansion
 - [ ] Convert p-adic expansion into rational number
 - [ ] Basic operations for p-adic numbers
+
+### Bugs
+
+- [ ] 5-adic expansion of 25/3 is not correct
+- [ ] 5-adic expansion of 1/75 is not correct
 
 ## License
 
