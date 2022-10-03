@@ -48,6 +48,8 @@ assert_eq!(padic.to_string(), "...3 1 3 1 3 2");
 - [x] Extract sign information to transform ratio into a tuple of unsigned integer variables
 - [x] Reduce ratio to lowest terms using GCD (Stein's algorithm)
 - [x] Basic arithmetic operations for rational numbers
+- [x] Modular multiplicative inverse
+- [ ] Implement extended greatest common divisor to extract Bezout coefficients
 
 ### P-adic
 
@@ -56,14 +58,14 @@ assert_eq!(padic.to_string(), "...3 1 3 1 3 2");
 - [x] P-adic norm of rational number
 - [x] P-adic expansion of rational number with given precision
 - [x] P-adic string representation with given precision and given valuation
+- [ ] P-adic arithmetic operations
 - [ ] Cyclic detection in p-adic expansion
 - [ ] Convert p-adic expansion into rational number
 - [ ] Basic operations for p-adic numbers
 
 ### Bugs
 
-- [ ] 5-adic expansion of 25/3 is not correct
-- [ ] 5-adic expansion of 1/75 is not correct
+- [ ] If the valuation is larger than the precision, the expansion is not correct
 
 ## License
 
