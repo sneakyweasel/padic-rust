@@ -20,7 +20,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-padic = "0.1.5"
+padic = "0.1.6"
 ```
 
 ```rust
@@ -29,14 +29,14 @@ let ratio = Ratio::new(2, 5);
 let padic = r.to_padic(3, 12);
 assert_eq!(padic.valuation, 0);
 assert_eq!(padic.expansion, vec![1, 1, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1]);
+assert_eq!(padic.expansion_cycle(), [1, 2, 1, 0]);
 assert_eq!(padic.to_string(), "... 1 2 1 0 1 2 1 0 1 2 1 1");
-assert_eq!(padic.cycle(), [1, 2, 1, 0]);
 ```
 
 ## Helpers functions
 
 - Prime factors with multiplicity (a: i64 / b: i64) -> Vec<(prime: u64, exp: u64)>
-- Greatest common divisor (Stein's algorithm)
+- Extended Euclidean algorithm with Bezout coefficients
 - Modular multiplicative inverse
 - Double cursor window cycle detection for repeating digits in p-adic expansion
 
@@ -50,9 +50,9 @@ assert_eq!(padic.cycle(), [1, 2, 1, 0]);
 ### Ratio
 
 - [x] Extract sign information to transform ratio into a tuple of unsigned integer variables
-- [x] Reduce ratio to lowest terms using GCD (Stein's algorithm)
+- [x] Reduce ratio to lowest terms using extended Euclidean algorithm
 - [x] Basic arithmetic operations for rational numbers
-- [x] Modular multiplicative inverse
+- [x] Modular multiplicative inverse using EGCD
 - [ ] Implement extended greatest common divisor to extract Bezout coefficients
 
 ### P-adic

@@ -3,7 +3,6 @@
 //!
 //! `padic` is a collection of utilities to convert and manipulate p-adic numbers.
 
-use std::cmp::{max, min};
 use std::fmt;
 
 //---------------------
@@ -27,6 +26,25 @@ pub struct Padic {
 
 #[allow(dead_code)]
 impl Padic {
+    /// Returns a vector of the digits of the p-adic expansion cycle
+    /// Might be empty if the p-adic expansion precision is too small
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use padic::Ratio;
+    /// let ratio = Ratio::new(2, 5);
+    /// let padic = ratio.to_padic(3, 12);
+    /// println!("{:?}", padic.expansion);
+    /// println!("{:?}", padic.to_string());
+    /// assert_eq!(padic.expansion_cycle(), vec![1, 2, 1, 0]);
+    /// assert_eq!(0, 4);
+    /// ```
+    pub fn expansion_cycle(&self) -> Vec<u64> {
+        let (offset, size) = cycle_detection(self.expansion.clone());
+        self.expansion[offset..offset + size].to_vec()
+    }
+
     /// Returns a formatted string representing the padic expansion
     ///
     /// # Example
@@ -62,25 +80,6 @@ impl Padic {
         expansion.reverse();
         "... ".to_string() + &expansion.join(" ").to_string().trim_end().to_string()
     }
-
-    /// Returns a vector of the digits of the p-adic expansion cycle
-    /// Might be empty if the p-adic expansion precision is too small
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use padic::Ratio;
-    /// let ratio = Ratio::new(2, 5);
-    /// let padic = ratio.to_padic(3, 12);
-    /// println!("{:?}", padic.expansion);
-    /// println!("{:?}", padic.to_string());
-    /// assert_eq!(padic.expansion_cycle(), vec![1, 2, 1, 0]);
-    /// assert_eq!(0, 4);
-    /// ```
-    pub fn expansion_cycle(&self) -> Vec<u64> {
-        let (offset, size) = cycle_detection(self.expansion.clone());
-        self.expansion[offset..offset + size].to_vec()
-    }
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -108,20 +107,20 @@ impl Ratio {
     /// ```
     /// use padic::Ratio;
     /// let r = Ratio::new(2, 4);
-    /// assert_eq!(r.num, 1);
+    /// assert_eq!(r.numer, 1);
     /// ```
-    pub fn new(n: i64, d: i64) -> Ratio {
-        if d == 0 {
+    pub fn new(numer: i64, denom: i64) -> Ratio {
+        if denom == 0 {
             panic!("Division by zero");
         }
         let mut sign = 1;
-        if n * d < 0 {
+        if numer * denom < 0 {
             sign = -1;
         }
-        let gcd = gcd(n.abs() as u64, d.abs() as u64);
+        let (gcd, _, _) = egcd(numer.abs(), denom.abs());
         Ratio {
-            numer: (n.abs() as u64 / gcd) as u64,
-            denom: (d.abs() as u64 / gcd) as u64,
+            numer: (numer.abs() / gcd) as u64,
+            denom: (denom.abs() / gcd) as u64,
             sign: sign,
         }
     }
@@ -451,31 +450,55 @@ impl fmt::Display for Ratio {
 // HELPER FUNCTIONS
 //---------------------
 
-/// Greatest common denominator - Stein's algorithm
-/// <https://rosettacode.org/wiki/Greatest_common_divisor#Rust>
+/// Extended Euclidean algorithm with Bezout's coefficients
+/// <https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm>
+/// Bezout coefficients: a*x + b*y == gcd(a,b)
 ///
 /// # Arguments
+///
 /// * `a` - A positive integer.
 /// * `b` - A positive integer.
 ///
 /// # Examples
 ///
 /// ```
-/// use padic::gcd;
-/// assert_eq!(gcd(6, 3), 3);
-/// assert_eq!(gcd(12, 4), 4);
+/// use padic::egcd;
+/// assert_eq!(egcd(26, 3), (1, -1, 9));
+/// assert_eq!(egcd(3, 26), (1, 9, -1));
 /// ```
-pub fn gcd(a: u64, b: u64) -> u64 {
-    match ((a, b), (a & 1, b & 1)) {
-        ((x, y), _) if x == y => y,
-        ((0, x), _) | ((x, 0), _) => x,
-        ((x, y), (0, 1)) | ((y, x), (1, 0)) => gcd(x >> 1, y),
-        ((x, y), (0, 0)) => gcd(x >> 1, y >> 1) << 1,
-        ((x, y), (1, 1)) => {
-            let (x, y) = (min(x, y), max(x, y));
-            gcd((y - x) >> 1, x)
+pub fn egcd(a: i64, b: i64) -> (i64, i64, i64) {
+    match (a, b) {
+        (0, _) => (b, 0, 1),
+        (_, 0) => (a, 1, 0),
+        _ => {
+            let quotient = b / a;
+            let remainder = b % a;
+            let (g, x, y) = egcd(remainder, a);
+            (g, y - quotient * x, x)
         }
-        _ => unreachable!(),
+    }
+}
+
+/// Returns modular multiplicative inverse of a number.
+/// <https://rosettacode.org/wiki/Modular_inverse#Rust>
+///
+/// # Arguments
+///
+/// * `a` - A positive integer.
+/// * `modulo` - A positive integer.
+///
+/// # Examples
+///
+/// ```
+/// use padic::mod_inv;
+/// assert_eq!(mod_inv(42, 2017), Some(1969));
+/// ```
+pub fn mod_inv(a: i64, m: i64) -> Option<i64> {
+    let (g, x, _) = egcd(a, m);
+
+    match g {
+        1 => Some(x.rem_euclid(m)),
+        _ => None,
     }
 }
 
@@ -513,38 +536,6 @@ pub fn prime_factors(num: u64) -> Vec<(u64, i64)> {
         }
     }
     factors
-}
-
-/// Returns modular multiplicative inverse of a number.
-/// <https://rosettacode.org/wiki/Modular_inverse#Rust>
-///
-/// # Arguments
-///
-/// * `a` - A positive integer.
-/// * `modulo` - A positive integer.
-///
-/// # Examples
-///
-/// ```
-/// use padic::mod_inv;
-/// assert_eq!(mod_inv(42, 2017), 1969);
-/// ```
-pub fn mod_inv(a: i64, modulo: i64) -> i64 {
-    if gcd(a as u64, modulo as u64) != 1 {
-        panic!("modular inverse does not exist");
-    }
-    let mut mn = (modulo, a);
-    let mut xy = (0, 1);
-
-    while mn.1 != 0 {
-        xy = (xy.1, xy.0 - (mn.0 / mn.1) * xy.1);
-        mn = (mn.1, mn.0 % mn.1);
-    }
-
-    while xy.0 < 0 {
-        xy.0 += modulo;
-    }
-    xy.0
 }
 
 /// Check if number is prime.
