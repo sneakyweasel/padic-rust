@@ -62,6 +62,25 @@ impl Padic {
         expansion.reverse();
         "... ".to_string() + &expansion.join(" ").to_string().trim_end().to_string()
     }
+
+    /// Returns a vector of the digits of the p-adic expansion cycle
+    /// Might be empty if the p-adic expansion precision is too small
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use padic::Ratio;
+    /// let ratio = Ratio::new(2, 5);
+    /// let padic = ratio.to_padic(3, 12);
+    /// println!("{:?}", padic.expansion);
+    /// println!("{:?}", padic.to_string());
+    /// assert_eq!(padic.expansion_cycle(), vec![1, 2, 1, 0]);
+    /// assert_eq!(0, 4);
+    /// ```
+    pub fn expansion_cycle(&self) -> Vec<u64> {
+        let (offset, size) = cycle_detection(self.expansion.clone());
+        self.expansion[offset..offset + size].to_vec()
+    }
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -414,7 +433,6 @@ impl Ratio {
 
                 let result = d_ratio.add(p_ratio.mul(num_ratio.clone()));
                 if result == *self {
-                    println!("{} = {} - {} * {}", self, digit, prime, num_ratio);
                     return (digit, num_ratio);
                 }
             }
@@ -559,6 +577,47 @@ pub fn is_prime(num: u64) -> bool {
         i += 2;
     }
     return true;
+}
+
+/// Double cursor window cycle detection algorithm.
+/// <https://rosettacode.org/wiki/Cycle_detection>
+/// <https://en.wikipedia.org/wiki/Cycle_detection>
+///
+/// # Arguments
+///
+/// * `arr` - a potentially repeating u64 vector.
+///
+/// # Examples
+///
+/// ```
+/// use padic::cycle_detection;
+/// let arr = vec![0, 1, 2, 3, 1, 2, 3, 1, 2];
+/// assert_eq!(cycle_detection(arr), (1, 3));
+/// let arr = vec![0, 1, 2, 1, 2, 1, 2, 3, 2];
+/// assert_eq!(cycle_detection(arr), (0, 0));
+/// ```
+/// ```
+pub fn cycle_detection(vector: Vec<u64>) -> (usize, usize) {
+    // Increasing offset
+    for offset in 0..vector.len() / 2 {
+        let slice = &vector[offset..].to_vec();
+        // Increasing window size
+        for size in 1..slice.len() / 2 {
+            let window: &Vec<u64> = &slice[0..size].to_vec();
+            let repetitions = (slice.len() / size) + 1;
+            let mut repeated: Vec<u64> = vec![];
+            // Create repeated window array
+            for _ in 0..repetitions {
+                repeated.extend(window);
+            }
+            repeated = repeated[0..slice.len()].to_vec();
+            // Check if repeated window matches slice
+            if repeated == *slice {
+                return (offset, size);
+            }
+        }
+    }
+    (0, 0)
 }
 
 #[cfg(test)]

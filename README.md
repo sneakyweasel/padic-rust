@@ -8,9 +8,11 @@ A collection of tools for p-adic numbers in Rust.
 
 This includes a p-adic type and a rational type.
 
+P-adic notation for the expansion is currently left to right.
+
 ## Status
 
-This library is currently in development. It is not yet ready for use.
+This library is currently in development and might be unstable.
 
 ## Usage
 
@@ -18,16 +20,17 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-padic = "0.1.4"
+padic = "0.1.5"
 ```
 
 ```rust
 use padic::Ratio;
-let ratio = Ratio::new(1, 3);
-let padic = r.to_padic(5, 6);
+let ratio = Ratio::new(2, 5);
+let padic = r.to_padic(3, 12);
 assert_eq!(padic.valuation, 0);
-assert_eq!(padic.expansion, vec![3, 1, 3, 1, 3, 2]);
-assert_eq!(padic.to_string(), "...3 1 3 1 3 2");
+assert_eq!(padic.expansion, vec![1, 1, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1]);
+assert_eq!(padic.to_string(), "... 1 2 1 0 1 2 1 0 1 2 1 1");
+assert_eq!(padic.cycle(), [1, 2, 1, 0]);
 ```
 
 ## Helpers functions
@@ -35,6 +38,7 @@ assert_eq!(padic.to_string(), "...3 1 3 1 3 2");
 - Prime factors with multiplicity (a: i64 / b: i64) -> Vec<(prime: u64, exp: u64)>
 - Greatest common divisor (Stein's algorithm)
 - Modular multiplicative inverse
+- Double cursor window cycle detection for repeating digits in p-adic expansion
 
 ## Resources
 
@@ -58,14 +62,14 @@ assert_eq!(padic.to_string(), "...3 1 3 1 3 2");
 - [x] P-adic norm of rational number
 - [x] P-adic expansion of rational number with given precision
 - [x] P-adic string representation with given precision and given valuation
+- [x] Cyclic detection in p-adic expansion (Sliding window algorithm)
 - [ ] P-adic arithmetic operations
-- [ ] Cyclic detection in p-adic expansion
 - [ ] Convert p-adic expansion into rational number
-- [ ] Basic operations for p-adic numbers
 
-### Bugs
+### Bugs / Features
 
 - [ ] If the valuation is larger than the precision, the expansion is not correct
+- [ ] If the precision is lower than the cycle length, the cycle is not detected
 
 ## License
 
