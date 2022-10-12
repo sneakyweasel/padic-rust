@@ -99,7 +99,7 @@ impl Ratio {
     ///
     /// # Arguments
     ///
-    /// * `num` - A signed integer numerator.
+    /// * `numer` - A signed integer numerator.
     /// * `denom` - A signed integer denominator.
     ///
     /// # Example
@@ -350,7 +350,6 @@ impl Ratio {
             return Ratio::new(1, exp as i64);
         }
     }
-
     /// Convert the ratio into a p-adic number.
     ///
     /// Info: <https://math.stackexchange.com/a/1187037>
@@ -361,7 +360,7 @@ impl Ratio {
     /// * `precision` - A positive integer.
     ///
     /// # Examples
-
+    ///
     /// 3-adic expansion of 2/5 with precision of 5 -> 1,1,2,1,0
     ///
     /// * +2/5 = 1 - 3 * 1/5
@@ -438,6 +437,10 @@ impl Ratio {
         }
         panic!("Next digit computation error.")
     }
+
+    // pub fn alternate_expansion(&self, prime: u64) -> (u64, Ratio) {
+    //     for exp in 0..precision {}
+    // }
 }
 
 impl fmt::Display for Ratio {
@@ -463,6 +466,7 @@ impl fmt::Display for Ratio {
 ///
 /// ```
 /// use padic::egcd;
+/// assert_eq!(egcd(3, 5), (1, -1, 9));
 /// assert_eq!(egcd(26, 3), (1, -1, 9));
 /// assert_eq!(egcd(3, 26), (1, 9, -1));
 /// ```
@@ -576,7 +580,7 @@ pub fn is_prime(num: u64) -> bool {
 ///
 /// # Arguments
 ///
-/// * `arr` - a potentially repeating u64 vector.
+/// * `vector` - a potentially repeating u64 vector.
 ///
 /// # Examples
 ///
@@ -586,7 +590,6 @@ pub fn is_prime(num: u64) -> bool {
 /// assert_eq!(cycle_detection(arr), (1, 3));
 /// let arr = vec![0, 1, 2, 1, 2, 1, 2, 3, 2];
 /// assert_eq!(cycle_detection(arr), (0, 0));
-/// ```
 /// ```
 pub fn cycle_detection(vector: Vec<u64>) -> (usize, usize) {
     // Increasing offset

@@ -26,7 +26,7 @@ padic = "0.1.6"
 ```rust
 use padic::Ratio;
 let ratio = Ratio::new(2, 5);
-let padic = r.to_padic(3, 12);
+let padic = ratio.to_padic(3, 12);
 assert_eq!(padic.valuation, 0);
 assert_eq!(padic.expansion, vec![1, 1, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1]);
 assert_eq!(padic.expansion_cycle(), [1, 2, 1, 0]);
@@ -52,8 +52,8 @@ assert_eq!(padic.to_string(), "... 1 2 1 0 1 2 1 0 1 2 1 1");
 - [x] Extract sign information to transform ratio into a tuple of unsigned integer variables
 - [x] Reduce ratio to lowest terms using extended Euclidean algorithm
 - [x] Basic arithmetic operations for rational numbers
+- [x] Implement extended greatest common divisor to extract Bezout coefficients
 - [x] Modular multiplicative inverse using EGCD
-- [ ] Implement extended greatest common divisor to extract Bezout coefficients
 
 ### P-adic
 
