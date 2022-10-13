@@ -26,6 +26,26 @@ pub struct Padic {
 
 #[allow(dead_code)]
 impl Padic {
+    /// Create new padic number
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use padic::Padic;
+    /// let padic = Padic::new(1, vec!(1, 1, 2, 2), 5);
+    /// assert_eq!(padic.valuation, 1);
+    /// ```
+    pub fn new(valuation: i64, expansion: Vec<u64>, prime: u64) -> Padic {
+        if !is_prime(prime) {
+            panic!("Prime provided {} is not prime.", prime);
+        }
+        Padic {
+            valuation: valuation,
+            expansion: expansion,
+            prime: prime,
+        }
+    }
+
     /// Returns a vector of the digits of the p-adic expansion cycle
     /// Might be empty if the p-adic expansion precision is too small
     ///
@@ -43,6 +63,48 @@ impl Padic {
     pub fn expansion_cycle(&self) -> Vec<u64> {
         let (offset, size) = cycle_detection(self.expansion.clone());
         self.expansion[offset..offset + size].to_vec()
+    }
+
+    /// Add two padic numbers
+    /// Currently only implemented for same valuation and precision
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use padic::Padic;
+    /// let padic1 = Padic::new(0, vec!(1, 1, 2, 4), 5);
+    /// let padic2 = Padic::new(0, vec!(2, 2, 4, 3), 5);
+    /// let padic3 = padic1.add(padic2);
+    /// assert_eq!(padic3.expansion, vec!(3, 3, 1, 3));
+    /// ```
+    pub fn add(&self, b: Padic) -> Padic {
+        let a = self.clone();
+        if a.valuation != b.valuation {
+            panic!("Different valuation not implemented yet.");
+        }
+        if a.prime != b.prime {
+            panic!(
+                "Can't add padic numbers with different primes: {} & {}",
+                a.prime, b.prime
+            );
+        }
+        let mut expansion = Vec::new();
+        let mut carry = 0;
+        for i in 0..a.expansion.len() {
+            let sum = a.expansion[i] + b.expansion[i] + carry;
+            println!(
+                "{} + {} + {} = {}",
+                a.expansion[i], b.expansion[i], carry, sum
+            );
+            if sum >= a.prime {
+                carry = 1;
+                expansion.push(sum - a.prime);
+            } else {
+                carry = 0;
+                expansion.push(sum);
+            }
+        }
+        Padic::new(a.valuation, expansion, a.prime)
     }
 
     /// Returns a formatted string representing the padic expansion
@@ -477,8 +539,8 @@ pub fn egcd(a: i64, b: i64) -> (i64, i64, i64) {
         _ => {
             let quotient = b / a;
             let remainder = b % a;
-            let (g, x, y) = egcd(remainder, a);
-            (g, y - quotient * x, x)
+            let (gcd, x, y) = egcd(remainder, a);
+            (gcd, y - quotient * x, x)
         }
     }
 }
@@ -488,7 +550,7 @@ pub fn egcd(a: i64, b: i64) -> (i64, i64, i64) {
 ///
 /// # Arguments
 ///
-/// * `a` - A positive integer.
+/// * `num` - A positive integer.
 /// * `modulo` - A positive integer.
 ///
 /// # Examples
@@ -497,11 +559,11 @@ pub fn egcd(a: i64, b: i64) -> (i64, i64, i64) {
 /// use padic::mod_inv;
 /// assert_eq!(mod_inv(42, 2017), Some(1969));
 /// ```
-pub fn mod_inv(a: i64, m: i64) -> Option<i64> {
-    let (g, x, _) = egcd(a, m);
+pub fn mod_inv(num: i64, modulo: i64) -> Option<i64> {
+    let (gcd, x, _) = egcd(num, modulo);
 
-    match g {
-        1 => Some(x.rem_euclid(m)),
+    match gcd {
+        1 => Some(x.rem_euclid(modulo)),
         _ => None,
     }
 }
