@@ -499,10 +499,6 @@ impl Ratio {
         }
         panic!("Next digit computation error.")
     }
-
-    // pub fn alternate_expansion(&self, prime: u64) -> (u64, Ratio) {
-    //     for exp in 0..precision {}
-    // }
 }
 
 impl fmt::Display for Ratio {
