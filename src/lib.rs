@@ -1,4 +1,14 @@
+#![warn(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::missing_docs_in_private_items,
+    clippy::implicit_return,
+    clippy::shadow_reuse,
+    clippy::print_stdout,
+    clippy::wildcard_enum_match_arm,
+    clippy::else_if_without_else
+)]
 #![forbid(unsafe_code)]
+
 //! # P-adic numbers
 //!
 //! `padic` is a collection of utilities to convert and manipulate p-adic numbers.
@@ -9,8 +19,8 @@ use std::fmt;
 // CONSTANTS
 //---------------------
 
-const MAX_ARG: u64 = 1048576; // Argument maximum
-const MAX_P: u64 = 32749; // Maximum prime < 2^15
+const MAX_ARG: u64 = 1_048_576; // Argument maximum
+const MAX_P: u64 = 32_749; // Maximum prime < 2^15
 
 //---------------------
 // STRUCTS
@@ -24,6 +34,45 @@ pub struct Padic {
     prime: u64,
 }
 
+impl fmt::Display for Padic {
+    /// Returns a formatted string representing the padic expansion
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use padic::Ratio;
+    /// let ratio_zero = Ratio::new(1, 3);
+    /// assert_eq!(ratio_zero.to_padic(5, 6).to_string(), "... 3 1 3 1 3 2");
+    /// let ratio_plus = Ratio::new(25, 3);
+    /// assert_eq!(ratio_plus.to_padic(5, 6).to_string(), "... 3 1 3 2 0 0");
+    /// let ratio_minus = Ratio::new(1, 75);
+    /// assert_eq!(ratio_minus.to_padic(5, 6).to_string(), "... 1 3 1 , 3 2");
+    /// ```
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let mut expansion: Vec<String> = self
+            .expansion
+            .clone()
+            .iter()
+            .map(|&d| d.to_string())
+            .collect();
+
+        if self.valuation < 0 {
+            expansion.insert(-self.valuation as usize, ",".to_string());
+            expansion.pop();
+        }
+
+        if self.valuation > 0 {
+            for _i in 0..self.valuation {
+                expansion.insert(0, "0".to_string());
+                expansion.pop();
+            }
+        }
+        expansion.reverse();
+        let str = "... ".to_string() + &expansion.join(" ").trim_end().to_string();
+        fmt.write_str(&str)
+    }
+}
+
 #[allow(dead_code)]
 impl Padic {
     /// Create new padic number
@@ -35,14 +84,18 @@ impl Padic {
     /// let padic = Padic::new(1, vec!(1, 1, 2, 2), 5);
     /// assert_eq!(padic.valuation, 1);
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// Will panic if the provided prime is not prime
     pub fn new(valuation: i64, expansion: Vec<u64>, prime: u64) -> Padic {
         if !is_prime(prime) {
             panic!("Prime provided {} is not prime.", prime);
         }
         Padic {
-            valuation: valuation,
-            expansion: expansion,
-            prime: prime,
+            valuation,
+            expansion,
+            prime,
         }
     }
 
@@ -61,7 +114,7 @@ impl Padic {
     /// assert_eq!(0, 4);
     /// ```
     pub fn expansion_cycle(&self) -> Vec<u64> {
-        let (offset, size) = cycle_detection(self.expansion.clone());
+        let (offset, size) = cycle_detection(&self.expansion);
         self.expansion[offset..offset + size].to_vec()
     }
 
@@ -74,10 +127,15 @@ impl Padic {
     /// use padic::Padic;
     /// let padic1 = Padic::new(0, vec!(1, 1, 2, 4), 5);
     /// let padic2 = Padic::new(0, vec!(2, 2, 4, 3), 5);
-    /// let padic3 = padic1.add(padic2);
+    /// let padic3 = padic1.add(&padic2);
     /// assert_eq!(padic3.expansion, vec!(3, 3, 1, 3));
     /// ```
-    pub fn add(&self, b: Padic) -> Padic {
+    ///
+    /// # Panics
+    ///
+    /// Will panic if valuations are different
+    /// Will panic if primes are different
+    pub fn add(&self, b: &Padic) -> Padic {
         let a = self.clone();
         if a.valuation != b.valuation {
             panic!("Different valuation not implemented yet.");
@@ -106,42 +164,6 @@ impl Padic {
         }
         Padic::new(a.valuation, expansion, a.prime)
     }
-
-    /// Returns a formatted string representing the padic expansion
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use padic::Ratio;
-    /// let ratio_zero = Ratio::new(1, 3);
-    /// assert_eq!(ratio_zero.to_padic(5, 6).to_string(), "... 3 1 3 1 3 2");
-    /// let ratio_plus = Ratio::new(25, 3);
-    /// assert_eq!(ratio_plus.to_padic(5, 6).to_string(), "... 3 1 3 2 0 0");
-    /// let ratio_minus = Ratio::new(1, 75);
-    /// assert_eq!(ratio_minus.to_padic(5, 6).to_string(), "... 1 3 1 , 3 2");
-    /// ```
-    pub fn to_string(&self) -> String {
-        let mut expansion: Vec<String> = self
-            .expansion
-            .clone()
-            .iter()
-            .map(|&d| d.to_string())
-            .collect();
-
-        if self.valuation < 0 {
-            expansion.insert(-self.valuation as usize, ",".to_string());
-            expansion.pop();
-        }
-
-        if self.valuation > 0 {
-            for _i in 0..self.valuation {
-                expansion.insert(0, "0".to_string());
-                expansion.pop();
-            }
-        }
-        expansion.reverse();
-        "... ".to_string() + &expansion.join(" ").to_string().trim_end().to_string()
-    }
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -153,6 +175,28 @@ pub struct Ratio {
     pub denom: u64,
     /// Sign (-1 or +1)
     pub sign: i64,
+}
+
+impl fmt::Display for Ratio {
+    /// Returns the string representation of the ratio.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use padic::Ratio;
+    /// let r = Ratio::new(2, -4);
+    /// assert_eq!(r.to_string(), "-1/2");
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut s = String::new();
+        if self.sign == -1 {
+            s.push('-');
+        }
+        s.push_str(&self.numer.to_string());
+        s.push('/');
+        s.push_str(&self.denom.to_string());
+        f.write_str(&s)
+    }
 }
 
 #[allow(dead_code)]
@@ -171,6 +215,10 @@ impl Ratio {
     /// let r = Ratio::new(2, 4);
     /// assert_eq!(r.numer, 1);
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// Will panic if there's a division by zero.
     pub fn new(numer: i64, denom: i64) -> Ratio {
         if denom == 0 {
             panic!("Division by zero");
@@ -183,7 +231,7 @@ impl Ratio {
         Ratio {
             numer: (numer.abs() / gcd) as u64,
             denom: (denom.abs() / gcd) as u64,
-            sign: sign,
+            sign,
         }
     }
 
@@ -201,7 +249,7 @@ impl Ratio {
     /// let b = Ratio::new(3, 5);
     /// assert_eq!(a.add(b), Ratio::new(1, 5));
     /// ```
-    pub fn add(&self, b: Ratio) -> Ratio {
+    pub fn add(&self, b: &Ratio) -> Ratio {
         let n = self.sign * self.numer as i64 * b.denom as i64
             + b.sign * self.denom as i64 * b.numer as i64;
         let d = self.denom as i64 * b.denom as i64;
@@ -222,7 +270,7 @@ impl Ratio {
     /// let b = Ratio::new(3, 5);
     /// assert_eq!(a.sub(b), Ratio::new(-1, 1));
     /// ```
-    pub fn sub(&self, b: Ratio) -> Ratio {
+    pub fn sub(&self, b: &Ratio) -> Ratio {
         let n = self.sign * self.numer as i64 * b.denom as i64
             - b.sign * self.denom as i64 * b.numer as i64;
         let d = self.denom as i64 * b.denom as i64;
@@ -243,7 +291,7 @@ impl Ratio {
     /// let b = Ratio::new(3, 5);
     /// assert_eq!(a.mul(b), Ratio::new(-6, 25));
     /// ```
-    pub fn mul(&self, b: Ratio) -> Ratio {
+    pub fn mul(&self, b: &Ratio) -> Ratio {
         let n = self.sign * b.sign * self.numer as i64 * b.numer as i64;
         let d = self.denom as i64 * b.denom as i64;
         Ratio::new(n, d)
@@ -261,9 +309,9 @@ impl Ratio {
     /// use padic::Ratio;
     /// let a = Ratio::new(-2, 5);
     /// let b = Ratio::new(3, 5);
-    /// assert_eq!(a.div(b), Ratio::new(-2, 3));
+    /// assert_eq!(a.div(&b), Ratio::new(-2, 3));
     /// ```
-    pub fn div(&self, b: Ratio) -> Ratio {
+    pub fn div(&self, b: &Ratio) -> Ratio {
         let n = self.sign * b.sign * self.numer as i64 * b.denom as i64;
         let d = self.denom as i64 * b.numer as i64;
         Ratio::new(n, d)
@@ -292,12 +340,12 @@ impl Ratio {
         for prime in &primes {
             let mut pow_n = 0;
             let mut pow_d = 0;
-            for &(p, pow) in fact_n.iter() {
+            for &(p, pow) in &fact_n {
                 if p == *prime {
                     pow_n = pow;
                 }
             }
-            for &(p, pow) in fact_d.iter() {
+            for &(p, pow) in &fact_d {
                 if p == *prime {
                     pow_d = pow;
                 }
@@ -308,7 +356,7 @@ impl Ratio {
                 result.push((*prime, diff));
             }
         }
-        return result;
+        result
     }
 
     /// Returns the prime factors with multiplicity of the ratio.
@@ -327,10 +375,10 @@ impl Ratio {
         let mut denom = self.denom;
 
         while numer % prime == 0 {
-            numer /= prime
+            numer /= prime;
         }
         while denom % prime == 0 {
-            denom /= prime
+            denom /= prime;
         }
         Ratio::new(self.sign * numer as i64, denom as i64)
     }
@@ -348,26 +396,6 @@ impl Ratio {
         self.sign as f64 * (self.numer as f64 / self.denom as f64)
     }
 
-    /// Returns the string representation of the ratio.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use padic::Ratio;
-    /// let r = Ratio::new(2, -4);
-    /// assert_eq!(r.to_string(), "-1/2");
-    /// ```
-    pub fn to_string(&self) -> String {
-        let mut s = String::new();
-        if self.sign == -1 {
-            s.push('-');
-        }
-        s.push_str(&self.numer.to_string());
-        s.push('/');
-        s.push_str(&self.denom.to_string());
-        s
-    }
-
     /// Returns the p-adic valuation of the ratio.
     ///
     /// # Examples
@@ -377,8 +405,11 @@ impl Ratio {
     /// let r = Ratio::new(71, 9);
     /// assert_eq!(r.padic_valuation(3), -2);
     /// ```
+    ///
+    /// # Panics
+    /// Will panic if prime is not prime
     pub fn padic_valuation(&self, prime: u64) -> i64 {
-        if is_prime(prime) == false {
+        if !is_prime(prime) {
             panic!("{} is not a prime", prime);
         }
         for &(p, pow) in &self.prime_factors() {
@@ -386,7 +417,7 @@ impl Ratio {
                 return pow;
             }
         }
-        return 0;
+        0
     }
 
     /// Returns the p-adic absolute value of the ratio.
@@ -398,18 +429,21 @@ impl Ratio {
     /// let r = Ratio::new(71, 9);
     /// assert_eq!(r.padic_absolute(3), Ratio::new(9, 1));
     /// ```
+    ///
+    /// # Panics
+    /// Will panic if prime is not prime
     pub fn padic_absolute(&self, prime: u64) -> Ratio {
-        if is_prime(prime) == false {
+        if !is_prime(prime) {
             panic!("{} is not a prime", prime);
         }
         let valuation = self.padic_valuation(prime);
         let exp = prime.pow((valuation.abs()) as u32);
         if self.numer == 0 {
-            return Ratio::new(0, 1);
+            Ratio::new(0, 1)
         } else if valuation < 0 {
-            return Ratio::new(exp as i64, 1);
+            Ratio::new(exp as i64, 1)
         } else {
-            return Ratio::new(1, exp as i64);
+            Ratio::new(1, exp as i64)
         }
     }
     /// Convert the ratio into a p-adic number.
@@ -437,15 +471,22 @@ impl Ratio {
     /// let p = r.to_padic(3, 5);
     /// assert_eq!(p.expansion, vec![1, 1, 2, 1, 0]);
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// Will panic if ratio numbers are too high
+    /// Will panic if the prime is out of range
+    /// Will panic if the prime is not prime
+    /// Will panic if the precision is too small
     pub fn to_padic(&self, prime: u64, precision: u64) -> Padic {
         // Validate input
         if self.numer > MAX_ARG || self.denom > MAX_ARG as u64 {
             panic!("Ratio too large");
         }
-        if prime < 2 || prime > MAX_P {
+        if !(2..=MAX_P).contains(&prime) {
             panic!("Prime out of range");
         }
-        if is_prime(prime) == false {
+        if !is_prime(prime) {
             panic!("{} is not a prime", prime);
         }
         if precision < 1 {
@@ -465,11 +506,11 @@ impl Ratio {
         }
 
         // Initialize padic number
-        return Padic {
-            valuation: valuation,
-            expansion: expansion,
-            prime: prime,
-        };
+        Padic {
+            valuation,
+            expansion,
+            prime,
+        }
     }
 
     /// Returns the next digit of the p-adic expansion.
@@ -483,6 +524,9 @@ impl Ratio {
     /// let a = Ratio::new(2, 5);
     /// assert_eq!(a.next_digit(3), (1, Ratio::new(-1, 5)));
     /// ```
+    ///
+    /// # Panics
+    /// Will panic if a value isn't returned
     pub fn next_digit(&self, prime: u64) -> (u64, Ratio) {
         let p_ratio = Ratio::new(prime as i64, 1);
         for digit in 0..=prime {
@@ -491,19 +535,13 @@ impl Ratio {
             for num in 1..=self.denom {
                 let num_ratio = Ratio::new(-(num as i64), self.denom as i64);
 
-                let result = d_ratio.add(p_ratio.mul(num_ratio.clone()));
+                let result = d_ratio.add(&p_ratio.mul(&num_ratio));
                 if result == *self {
                     return (digit, num_ratio);
                 }
             }
         }
         panic!("Next digit computation error.")
-    }
-}
-
-impl fmt::Display for Ratio {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.to_string())
     }
 }
 
@@ -629,7 +667,7 @@ pub fn is_prime(num: u64) -> bool {
         }
         i += 2;
     }
-    return true;
+    true
 }
 
 /// Double cursor window cycle detection algorithm.
@@ -649,7 +687,7 @@ pub fn is_prime(num: u64) -> bool {
 /// let arr = vec![0, 1, 2, 1, 2, 1, 2, 3, 2];
 /// assert_eq!(cycle_detection(arr), (0, 0));
 /// ```
-pub fn cycle_detection(vector: Vec<u64>) -> (usize, usize) {
+pub fn cycle_detection(vector: &[u64]) -> (usize, usize) {
     // Increasing offset
     for offset in 0..vector.len() / 2 {
         let slice = &vector[offset..].to_vec();
